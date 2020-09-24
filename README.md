@@ -1,2 +1,3 @@
 # Juniper-v2
-3D rendering and triangle rasterization from scratch
+An expirementation with 3D game development from scratch.
+Created and maintained by Keegan Kochis.
