@@ -1,0 +1,17 @@
+# Juniper v2 .gitignore
+
+# Build directory containing all CMake, make, and binary files
+build
+
+# CMake files, just in case
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Testing
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps
