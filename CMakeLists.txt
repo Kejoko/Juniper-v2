@@ -18,7 +18,7 @@ add_subdirectory(juniper)
 #======================================================================
 # Juniper Entry Point
 #======================================================================
-add_executable(JuniperEngine Juniper/EntryPoint.cpp)
+add_executable(JuniperEngine juniper/EntryPoint.cpp)
 
 target_link_libraries(
   JuniperEngine
