@@ -38,21 +38,33 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/juniper/dependencies/vulkansdk/macOS/include)
 
 #======================================================================
-# Link project dependencies
+# Subdirectories, include directories, Juniper libraries
 #======================================================================
-
-#======================================================================
-# Subdirectories
-#======================================================================
+add_subdirectory(app)
 add_subdirectory(juniper)
+
+include_directories("${PROJECT_SOURCE_DIR}/juniper/include")
+
+list(APPEND J_LIBS J_Game)
 
 #======================================================================
 # Juniper Entry Point
 #======================================================================
-add_executable(JuniperEngine juniper/EntryPoint.cpp)
+add_executable(JuniperEngine juniper/JuniperMain.cpp)
 
 target_link_libraries(
   JuniperEngine
+  PRIVATE
+  ${DEP_LIBS}
+  ${J_LIBS})
+
+#======================================================================
+# Game Entry Point
+#======================================================================
+add_executable(Game app/GameMain.cpp)
+
+target_link_libraries(
+  Game
   PRIVATE
   ${DEP_LIBS}
   ${J_LIBS})
