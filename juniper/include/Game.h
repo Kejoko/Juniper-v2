@@ -6,6 +6,10 @@
 // The declaration of the Game class.
 //======================================================================
 
+#ifndef GAME_H
+#define GAME_H
+
+#define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
 class Game {
@@ -20,9 +24,13 @@ public:
     
 private:
     GLFWwindow* mpWindow;
+    VkInstance mVulkanInstance;
     
     void init_window();
     void init_vulkan();
+    void create_vulkan_instance();
     void main_loop();
     void clean_up();
 };
+
+#endif // GAME_H
