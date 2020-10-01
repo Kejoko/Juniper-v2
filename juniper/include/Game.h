@@ -9,8 +9,18 @@
 #ifndef GAME_H
 #define GAME_H
 
+#include <vector>
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+
+#define DEBUG
+
+#ifdef DEBUG
+#define DEBUG_ON true
+#else
+#define DEBUG_ON false
+#endif
 
 class Game {
 public:
@@ -25,12 +35,25 @@ public:
 private:
     GLFWwindow* mpWindow;
     VkInstance mVulkanInstance;
+    VkDebugUtilsMessengerEXT mVulkanDebugMessenger;
+    
+    std::vector<const char*> mValidationLayers = { "VK_LAYER_KHRONOS_validation" };
+    const bool mEnableValidationLayers = DEBUG_ON;
     
     void init_window();
     void init_vulkan();
     void create_vulkan_instance();
+    bool check_vulkan_validation_layer_support();
+    std::vector<const char*> get_required_glfw_extensions();
+    void setup_vulkan_debug_messenger();
     void main_loop();
     void clean_up();
+    
+    static VKAPI_ATTR VkBool32 VKAPI_CALL
+    vulkan_debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT messgaeSeverity,
+                          VkDebugUtilsMessageTypeFlagsEXT messageType,
+                          const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+                          void* pUserData);
 };
 
 #endif // GAME_H
