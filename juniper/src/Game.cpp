@@ -69,14 +69,22 @@ void Game::create_vulkan_instance() {
     VkInstanceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &applicationInfo;
+    
+    
+    
     createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
     if (mEnableValidationLayers) {
         createInfo.enabledLayerCount = static_cast<uint32_t>(mValidationLayers.size());
         createInfo.ppEnabledLayerNames = mValidationLayers.data();
+        
+        VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
+        populate_vulkan_debug_messenger_info(debugCreateInfo);
+        createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debugCreateInfo;
     }
     else {
         createInfo.enabledLayerCount = 0;
+        createInfo.pNext = nullptr;
     }
     
     uint32_t availableExtensionCount = 0;
@@ -183,6 +191,15 @@ void Game::setup_vulkan_debug_messenger() {
     if (!mEnableValidationLayers) return;
     
     VkDebugUtilsMessengerCreateInfoEXT createInfo{};
+    populate_vulkan_debug_messenger_info(createInfo);
+    
+    // Load and call vkCreateDebugUtilsMessengerEXT function
+    if (CreateDebugUtilsMessengerEXT(mVulkanInstance, &createInfo, nullptr, &mVulkanDebugMessenger) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to set up Vulkan debug messenger!");
+    }
+}
+
+void Game::populate_vulkan_debug_messenger_info(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
     createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
     // Update with desired message severities (all are enabled right now)
     createInfo.messageSeverity =
@@ -197,11 +214,6 @@ void Game::setup_vulkan_debug_messenger() {
         VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
     createInfo.pfnUserCallback = vulkan_debug_callback;
     createInfo.pUserData = nullptr; // Can be modified? Can pass a pointer to this application
-    
-    // Load and call vkCreateDebugUtilsMessengerEXT function
-    if (CreateDebugUtilsMessengerEXT(mVulkanInstance, &createInfo, nullptr, &mVulkanDebugMessenger) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to set up Vulkan debug messenger!");
-    }
 }
 
 

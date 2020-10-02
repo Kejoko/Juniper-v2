@@ -46,6 +46,7 @@ private:
     bool check_vulkan_validation_layer_support();
     std::vector<const char*> get_required_glfw_extensions();
     void setup_vulkan_debug_messenger();
+    void populate_vulkan_debug_messenger_info(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
     void main_loop();
     void clean_up();
     
