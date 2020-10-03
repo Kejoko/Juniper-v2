@@ -10,6 +10,7 @@
 
 #include <cstring>
 #include <iostream>
+#include <map>
 #include <stdexcept>
 #include <vector>
 
@@ -25,10 +26,8 @@ void Game::run() {
     clean_up();
 }
 
-
-
-
-
+//------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------
 void Game::init_window() {
     glfwInit();
 
@@ -38,19 +37,18 @@ void Game::init_window() {
     mpWindow = glfwCreateWindow(mWindowWidth, mWindowHeight, "Juniper Game", nullptr, nullptr);
 }
 
-
-
-
-
+//------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------
 void Game::init_vulkan() {
     create_vulkan_instance();
     setup_vulkan_debug_messenger();
+    pick_physical_device();
 }
 
-
-
-
-
+//------------------------------------------------------------------------------------------
+// Create and populate the application information and instance information structs to pass
+// to the vulkan instance member variable upon creation attempt
+//------------------------------------------------------------------------------------------
 void Game::create_vulkan_instance() {
     if (mEnableValidationLayers && !check_vulkan_validation_layer_support()) {
         throw std::runtime_error("Vulkan validation layers requested but not available!");
@@ -63,15 +61,13 @@ void Game::create_vulkan_instance() {
     applicationInfo.pEngineName = "Juniper";
     applicationInfo.engineVersion = VK_MAKE_VERSION(0, 0, 1);
     applicationInfo.apiVersion = VK_API_VERSION_1_0;
+    applicationInfo.pNext = nullptr;
     
     std::vector<const char*> extensions = get_required_glfw_extensions();
     
     VkInstanceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &applicationInfo;
-    
-    
-    
     createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
     if (mEnableValidationLayers) {
@@ -110,10 +106,9 @@ void Game::create_vulkan_instance() {
     }
 }
 
-
-
-
-
+//------------------------------------------------------------------------------------------
+// Check that all of the requested validation layers are available
+//------------------------------------------------------------------------------------------
 bool Game::check_vulkan_validation_layer_support() {
     uint32_t layerCount;
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
@@ -138,10 +133,8 @@ bool Game::check_vulkan_validation_layer_support() {
     return true;
 }
 
-
-
-
-
+//------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------
 std::vector<const char*> Game::get_required_glfw_extensions() {
     uint32_t glfwExtensionCount = 0;
     const char** glfwExtensions;
@@ -159,11 +152,9 @@ std::vector<const char*> Game::get_required_glfw_extensions() {
     return extensions;
 }
 
-
-
-
-
-
+//------------------------------------------------------------------------------------------
+// Attemp to load and return the vkCreateDebugUtilsMessengerEXT function
+//------------------------------------------------------------------------------------------
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
                                       const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
                                       const VkAllocationCallbacks* pAllocator,
@@ -178,6 +169,9 @@ VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
     }
 }
 
+//------------------------------------------------------------------------------------------
+// Attemp to load and return the vkDestroyDebugUtilsMessengerEXT function
+//------------------------------------------------------------------------------------------
 void DestroyDebugUtilsMessengerEXT(VkInstance instance,
                                    VkDebugUtilsMessengerEXT debugMessenger,
                                    const VkAllocationCallbacks* pAllocator) {
@@ -187,6 +181,8 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance,
     }
 }
 
+//------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------
 void Game::setup_vulkan_debug_messenger() {
     if (!mEnableValidationLayers) return;
     
@@ -199,6 +195,9 @@ void Game::setup_vulkan_debug_messenger() {
     }
 }
 
+//------------------------------------------------------------------------------------------
+// Populate vulkan debug messenger information struct
+//------------------------------------------------------------------------------------------
 void Game::populate_vulkan_debug_messenger_info(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
     createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
     // Update with desired message severities (all are enabled right now)
@@ -216,12 +215,9 @@ void Game::populate_vulkan_debug_messenger_info(VkDebugUtilsMessengerCreateInfoE
     createInfo.pUserData = nullptr; // Can be modified? Can pass a pointer to this application
 }
 
-
-
-
-
-
-
+//------------------------------------------------------------------------------------------
+// Create callback function for Vulkan to use for debugging messages
+//------------------------------------------------------------------------------------------
 VKAPI_ATTR VkBool32 VKAPI_CALL
 Game::vulkan_debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT messgaeSeverity,
                             VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -236,20 +232,70 @@ Game::vulkan_debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT messgaeSeveri
     return VK_FALSE;
 }
 
+//------------------------------------------------------------------------------------------
+// Choose physical device for Vulkan to use
+// Rate the physical devices and choose the best/most suitable one
+//------------------------------------------------------------------------------------------
+int rate_physical_device_suitability(VkPhysicalDevice device) {
+    VkPhysicalDeviceProperties deviceProperties;
+    vkGetPhysicalDeviceProperties(device, &deviceProperties);
+    
+    VkPhysicalDeviceFeatures deviceFeatures;
+    vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+    
+    // This is not supported on Mac
+//    if (!deviceFeatures.geometryShader) {
+//        return 0;
+//    }
+    
+    int score = 0;
+    
+    // Give preference to physical GPUs
+    if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+        score += 1000;
+    }
+    
+    // Give preference to devices with larger possible texture sizes
+    score += deviceProperties.limits.maxImageDimension2D;
+    
+    return score;
+}
 
+void Game::pick_physical_device() {
+    uint32_t deviceCount = 0;
+    vkEnumeratePhysicalDevices(mVulkanInstance, &deviceCount, nullptr);
+    
+    if (deviceCount == 0) {
+        throw std::runtime_error("Failed to find GPUs with Vulkan support!");
+    }
+    
+    std::vector<VkPhysicalDevice> devices(deviceCount);
+    vkEnumeratePhysicalDevices(mVulkanInstance, &deviceCount, devices.data());
+    
+    std::multimap<int, VkPhysicalDevice> candidates;
+    for (const auto& device : devices) {
+        int score = rate_physical_device_suitability(device);
+        candidates.insert(std::make_pair(score, device));
+    }
+    
+    if ( candidates.rbegin()->first > 0) {
+        mPhysicalDevice = candidates.rbegin()->second;
+    }
+    else {
+        throw std::runtime_error("Failed to find GPUs with Vulkan support!");
+    }
+}
 
-
-
+//------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------
 void Game::main_loop() {
     while (!glfwWindowShouldClose(mpWindow)) {
         glfwPollEvents();
     }
 }
 
-
-
-
-
+//------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------
 void Game::clean_up() {
     if (mEnableValidationLayers) {
         // Load and call vkDestroyDebugUtilsMessengerEXT

@@ -36,6 +36,7 @@ private:
     GLFWwindow* mpWindow;
     VkInstance mVulkanInstance;
     VkDebugUtilsMessengerEXT mVulkanDebugMessenger;
+    VkPhysicalDevice mPhysicalDevice = VK_NULL_HANDLE;
     
     std::vector<const char*> mValidationLayers = { "VK_LAYER_KHRONOS_validation" };
     const bool mEnableValidationLayers = DEBUG_ON;
@@ -47,6 +48,7 @@ private:
     std::vector<const char*> get_required_glfw_extensions();
     void setup_vulkan_debug_messenger();
     void populate_vulkan_debug_messenger_info(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+    void pick_physical_device();
     void main_loop();
     void clean_up();
     
