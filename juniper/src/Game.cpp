@@ -11,6 +11,7 @@
 #include <cstring>
 #include <iostream>
 #include <map>
+#include <optional>
 #include <stdexcept>
 #include <vector>
 
@@ -75,7 +76,7 @@ void Game::create_vulkan_instance() {
         createInfo.ppEnabledLayerNames = mValidationLayers.data();
         
         VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
-        populate_vulkan_debug_messenger_info(debugCreateInfo);
+        populate_vulkan_debug_messenger_create_info(debugCreateInfo);
         createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debugCreateInfo;
     }
     else {
@@ -187,7 +188,7 @@ void Game::setup_vulkan_debug_messenger() {
     if (!mEnableValidationLayers) return;
     
     VkDebugUtilsMessengerCreateInfoEXT createInfo{};
-    populate_vulkan_debug_messenger_info(createInfo);
+    populate_vulkan_debug_messenger_create_info(createInfo);
     
     // Load and call vkCreateDebugUtilsMessengerEXT function
     if (CreateDebugUtilsMessengerEXT(mVulkanInstance, &createInfo, nullptr, &mVulkanDebugMessenger) != VK_SUCCESS) {
@@ -198,11 +199,11 @@ void Game::setup_vulkan_debug_messenger() {
 //------------------------------------------------------------------------------------------
 // Populate vulkan debug messenger information struct
 //------------------------------------------------------------------------------------------
-void Game::populate_vulkan_debug_messenger_info(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
+void Game::populate_vulkan_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
     createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
     // Update with desired message severities (all are enabled right now)
     createInfo.messageSeverity =
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
+//        VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
         VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
         VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
         VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
@@ -284,6 +285,43 @@ void Game::pick_physical_device() {
     else {
         throw std::runtime_error("Failed to find GPUs with Vulkan support!");
     }
+}
+
+//------------------------------------------------------------------------------------------
+// Find the queue families that are used for submitting operations to Vulkan
+//------------------------------------------------------------------------------------------
+Game::QueueFamilyIndices Game::find_queue_families(VkPhysicalDevice device) {
+    QueueFamilyIndices indices;
+    
+    uint32_t queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+    
+    // Throw error if physical device has no queue families, if queueFamilyCount == 0
+    
+    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+    
+    for (uint32_t i = 0; i < queueFamilyCount; i++) {
+        if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+            indices.foundGraphicsFamily = true;
+            indices.graphicsFamily = i;
+        }
+        
+        if (indices.is_complete()) {
+            break;
+        }
+    }
+    
+    return indices;
+    
+}
+
+//------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------
+bool Game::is_device_suitable(VkPhysicalDevice device) {
+    QueueFamilyIndices indices = find_queue_families(device);
+    
+    return indices.is_complete();
 }
 
 //------------------------------------------------------------------------------------------

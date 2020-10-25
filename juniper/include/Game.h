@@ -9,6 +9,7 @@
 #ifndef GAME_H
 #define GAME_H
 
+#include <optional>
 #include <vector>
 
 #define GLFW_INCLUDE_VULKAN
@@ -24,15 +25,25 @@
 
 class Game {
 public:
-    // Struct for user settings (screen dimensions and stuff), for now will be here
+    // Struct for user settings (screen dimensions and stuff) will be member vars for now
     int mWindowWidth = 800;
     int mWindowHeight = 600;
+    
+    struct QueueFamilyIndices_t {
+        bool foundGraphicsFamily = false;
+        uint32_t graphicsFamily;
+        
+        bool is_complete() {
+            return foundGraphicsFamily;
+        }
+    }; typedef QueueFamilyIndices_t QueueFamilyIndices;
     
     Game();
     
     void run();
     
 private:
+    
     GLFWwindow* mpWindow;
     VkInstance mVulkanInstance;
     VkDebugUtilsMessengerEXT mVulkanDebugMessenger;
@@ -47,8 +58,10 @@ private:
     bool check_vulkan_validation_layer_support();
     std::vector<const char*> get_required_glfw_extensions();
     void setup_vulkan_debug_messenger();
-    void populate_vulkan_debug_messenger_info(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+    void populate_vulkan_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
     void pick_physical_device();
+    QueueFamilyIndices find_queue_families(VkPhysicalDevice device);
+    bool is_device_suitable(VkPhysicalDevice device);
     void main_loop();
     void clean_up();
     
