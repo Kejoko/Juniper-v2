@@ -44,6 +44,7 @@ void Game::init_vulkan() {
     create_vulkan_instance();
     setup_vulkan_debug_messenger();
     pick_physical_device();
+    create_logical_device();
 }
 
 //------------------------------------------------------------------------------------------
@@ -326,6 +327,42 @@ bool Game::is_device_suitable(VkPhysicalDevice device) {
 
 //------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------
+void Game::create_logical_device() {
+    QueueFamilyIndices indices = find_queue_families(mPhysicalDevice);
+    
+    VkDeviceQueueCreateInfo queueCreateInfo{};
+    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    queueCreateInfo.queueFamilyIndex = indices.graphicsFamily;
+    queueCreateInfo.queueCount = 1;
+    
+    float queuePriority = 1.0f;
+    queueCreateInfo.pQueuePriorities = &queuePriority;
+    
+    VkPhysicalDeviceFeatures deviceFeatures{};
+    
+    VkDeviceCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    createInfo.pQueueCreateInfos = &queueCreateInfo;
+    createInfo.queueCreateInfoCount = 1;
+    createInfo.pEnabledFeatures = &deviceFeatures;
+    createInfo.enabledExtensionCount = 0;
+    if (mEnableValidationLayers) {
+        createInfo.enabledLayerCount = static_cast<uint32_t>(mValidationLayers.size());
+        createInfo.ppEnabledLayerNames = mValidationLayers.data();
+    }
+    else {
+        createInfo.enabledLayerCount = 0;
+    }
+    
+    if (vkCreateDevice(mPhysicalDevice, &createInfo, nullptr, &mDevice) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create logical device!");
+    }
+    
+    vkGetDeviceQueue(mDevice, indices.graphicsFamily, 0, &mGraphicsQueue);
+}
+
+//------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------
 void Game::main_loop() {
     while (!glfwWindowShouldClose(mpWindow)) {
         glfwPollEvents();
@@ -335,6 +372,8 @@ void Game::main_loop() {
 //------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------
 void Game::clean_up() {
+    vkDestroyDevice(mDevice, nullptr);
+    
     if (mEnableValidationLayers) {
         // Load and call vkDestroyDebugUtilsMessengerEXT
         DestroyDebugUtilsMessengerEXT(mVulkanInstance, mVulkanDebugMessenger, nullptr);
