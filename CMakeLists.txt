@@ -17,6 +17,9 @@ set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
+include_directories(
+  ${PROJECT_SOURCE_DIR}/juniper/dependencies/glfw/include)
+
 add_subdirectory(juniper/dependencies/glfw)
 
 list(APPEND DEP_LIBS glfw)
@@ -24,35 +27,44 @@ list(APPEND DEP_LIBS glfw)
 #======================================================================
 # Vulkan
 #======================================================================
-link_directories(
-  ${PROJECT_SOURCE_DIR}/juniper/dependencies/vulkansdk/macOS/lib)
+find_package(Vulkan REQUIRED)
 
-list(APPEND DEP_LIBS libvulkan.1.dylib libvulkan.1.2.148.dylib)
-
-#======================================================================
-# Include project dependencies
-#======================================================================
-include_directories(
-  ${PROJECT_SOURCE_DIR}/juniper/dependencies/glfw/include
-  ${PROJECT_SOURCE_DIR}/juniper/dependencies/glm
-  ${PROJECT_SOURCE_DIR}/juniper/dependencies/vulkansdk/macOS/include)
+include_directories(${Vulkan_INCLUDE_DIRS})
+List(APPEND DEP_LIBS ${Vulkan_LIBRARIES})
 
 #======================================================================
-# Link project dependencies
+# GLM
 #======================================================================
+include_directories(${PROJECT_SOURCE_DIR}/juniper/dependencies/glm)
 
 #======================================================================
-# Subdirectories
+# Subdirectories, include directories, Juniper libraries
 #======================================================================
+add_subdirectory(app)
 add_subdirectory(juniper)
+
+include_directories("${PROJECT_SOURCE_DIR}/juniper/include")
+
+list(APPEND J_LIBS J_Game)
 
 #======================================================================
 # Juniper Entry Point
 #======================================================================
-add_executable(JuniperEngine juniper/EntryPoint.cpp)
+add_executable(JuniperEngine juniper/JuniperMain.cpp)
 
 target_link_libraries(
   JuniperEngine
+  PRIVATE
+  ${DEP_LIBS}
+  ${J_LIBS})
+
+#======================================================================
+# Game Entry Point
+#======================================================================
+add_executable(Game app/GameMain.cpp)
+
+target_link_libraries(
+  Game
   PRIVATE
   ${DEP_LIBS}
   ${J_LIBS})

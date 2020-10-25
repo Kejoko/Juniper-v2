@@ -3,7 +3,7 @@
 //
 // Keegan Kochis
 // Created: 2020/9/24
-// Entry point to the application created with the Juniper engine
+// Entry point to the Juniper engine
 //======================================================================
 
 #include <iostream>
