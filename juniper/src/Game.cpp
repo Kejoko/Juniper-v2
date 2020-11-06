@@ -43,6 +43,7 @@ void Game::init_window() {
 void Game::init_vulkan() {
     create_vulkan_instance();
     setup_vulkan_debug_messenger();
+    create_surface();
     pick_physical_device();
     create_logical_device();
 }
@@ -235,6 +236,14 @@ Game::vulkan_debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT messgaeSeveri
 }
 
 //------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------
+void Game::create_surface() {
+    if (glfwCreateWindowSurface(mVulkanInstance, mpWindow, nullptr, &mWindowSurface) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create window surface!");
+    }
+}
+
+//------------------------------------------------------------------------------------------
 // Choose physical device for Vulkan to use
 // Rate the physical devices and choose the best/most suitable one
 //------------------------------------------------------------------------------------------
@@ -297,16 +306,27 @@ Game::QueueFamilyIndices Game::find_queue_families(VkPhysicalDevice device) {
     uint32_t queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
     
-    // Throw error if physical device has no queue families, if queueFamilyCount == 0
+    if (queueFamilyCount == 0) {
+        throw std::runtime_error("Physical device has no queue families!");
+    }
     
     std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
     
     for (uint32_t i = 0; i < queueFamilyCount; i++) {
+        VkBool32 presentSupport = false;
+        vkGetPhysicalDeviceSurfaceSupportKHR(mPhysicalDevice, i, mWindowSurface, &presentSupport);
+        
         if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
             indices.foundGraphicsFamily = true;
             indices.graphicsFamily = i;
         }
+        
+        if (presentSupport) {
+            indices.foundPresentFamily = true;
+            indices.presentFamily = i;
+        }
+        
         
         if (indices.is_complete()) {
             break;
@@ -378,6 +398,8 @@ void Game::clean_up() {
         // Load and call vkDestroyDebugUtilsMessengerEXT
         DestroyDebugUtilsMessengerEXT(mVulkanInstance, mVulkanDebugMessenger, nullptr);
     }
+    
+    vkDestroySurfaceKHR(mVulkanInstance, mWindowSurface, nullptr);
     
     vkDestroyInstance(mVulkanInstance, nullptr);
     

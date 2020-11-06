@@ -33,8 +33,11 @@ public:
         bool foundGraphicsFamily = false;
         uint32_t graphicsFamily;
         
+        bool foundPresentFamily = false;
+        uint32_t presentFamily;
+        
         bool is_complete() {
-            return foundGraphicsFamily;
+            return foundGraphicsFamily && foundPresentFamily;
         }
     }; typedef QueueFamilyIndices_t QueueFamilyIndices;
     
@@ -50,6 +53,7 @@ private:
     VkPhysicalDevice mPhysicalDevice = VK_NULL_HANDLE;
     VkDevice mDevice;
     VkQueue mGraphicsQueue;
+    VkSurfaceKHR mWindowSurface;
     
     std::vector<const char*> mValidationLayers = { "VK_LAYER_KHRONOS_validation" };
     const bool mEnableValidationLayers = DEBUG_ON;
@@ -61,6 +65,7 @@ private:
     std::vector<const char*> get_required_glfw_extensions();
     void setup_vulkan_debug_messenger();
     void populate_vulkan_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+    void create_surface();
     void pick_physical_device();
     QueueFamilyIndices find_queue_families(VkPhysicalDevice device);
     bool is_device_suitable(VkPhysicalDevice device);
