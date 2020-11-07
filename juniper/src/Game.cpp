@@ -12,6 +12,7 @@
 #include <iostream>
 #include <map>
 #include <optional>
+#include <set>
 #include <stdexcept>
 #include <vector>
 
@@ -334,7 +335,6 @@ Game::QueueFamilyIndices Game::find_queue_families(VkPhysicalDevice device) {
     }
     
     return indices;
-    
 }
 
 //------------------------------------------------------------------------------------------
@@ -350,20 +350,33 @@ bool Game::is_device_suitable(VkPhysicalDevice device) {
 void Game::create_logical_device() {
     QueueFamilyIndices indices = find_queue_families(mPhysicalDevice);
     
-    VkDeviceQueueCreateInfo queueCreateInfo{};
-    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queueCreateInfo.queueFamilyIndex = indices.graphicsFamily;
-    queueCreateInfo.queueCount = 1;
+    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+    std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily, indices.presentFamily};
     
     float queuePriority = 1.0f;
-    queueCreateInfo.pQueuePriorities = &queuePriority;
+    for (uint32_t queueFamily : uniqueQueueFamilies) {
+        VkDeviceQueueCreateInfo queueCreateInfo{};
+        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfo.queueFamilyIndex = queueFamily;
+        queueCreateInfo.queueCount = 1;
+        queueCreateInfo.pQueuePriorities = &queuePriority;
+        queueCreateInfos.push_back(queueCreateInfo);
+    }
+    
+//    VkDeviceQueueCreateInfo queueCreateInfo{};
+//    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+//    queueCreateInfo.queueFamilyIndex = indices.graphicsFamily;
+//    queueCreateInfo.queueCount = 1;
+//
+//    float queuePriority = 1.0f;
+//    queueCreateInfo.pQueuePriorities = &queuePriority;
     
     VkPhysicalDeviceFeatures deviceFeatures{};
     
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    createInfo.pQueueCreateInfos = &queueCreateInfo;
-    createInfo.queueCreateInfoCount = 1;
+    createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+    createInfo.pQueueCreateInfos = queueCreateInfos.data();
     createInfo.pEnabledFeatures = &deviceFeatures;
     createInfo.enabledExtensionCount = 0;
     if (mEnableValidationLayers) {
@@ -379,6 +392,7 @@ void Game::create_logical_device() {
     }
     
     vkGetDeviceQueue(mDevice, indices.graphicsFamily, 0, &mGraphicsQueue);
+    vkGetDeviceQueue(mDevice, indices.presentFamily, 0, &mPresentQueue);
 }
 
 //------------------------------------------------------------------------------------------
