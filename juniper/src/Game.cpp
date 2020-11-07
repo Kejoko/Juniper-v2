@@ -19,6 +19,10 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+const std::vector<const char*> deviceExtensions = {
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME
+};
+
 Game::Game() {}
 
 void Game::run() {
@@ -284,18 +288,31 @@ void Game::pick_physical_device() {
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(mVulkanInstance, &deviceCount, devices.data());
     
-    std::multimap<int, VkPhysicalDevice> candidates;
     for (const auto& device : devices) {
-        int score = rate_physical_device_suitability(device);
-        candidates.insert(std::make_pair(score, device));
+        if (is_device_suitable(device)) {
+            mPhysicalDevice = device;
+            break;
+        }
     }
     
-    if ( candidates.rbegin()->first > 0) {
-        mPhysicalDevice = candidates.rbegin()->second;
+    if (mPhysicalDevice == VK_NULL_HANDLE) {
+        throw std::runtime_error("Failed to find a suitable GPU!");
     }
-    else {
-        throw std::runtime_error("Failed to find GPUs with Vulkan support!");
-    }
+    
+//              Rate devices and choose best candidate
+//
+//    std::multimap<int, VkPhysicalDevice> candidates;
+//    for (const auto& device : devices) {
+//        int score = rate_physical_device_suitability(device);
+//        candidates.insert(std::make_pair(score, device));
+//    }
+//
+//    if ( candidates.rbegin()->first > 0) {
+//        mPhysicalDevice = candidates.rbegin()->second;
+//    }
+//    else {
+//        throw std::runtime_error("Failed to find GPUs with Vulkan support!");
+//    }
 }
 
 //------------------------------------------------------------------------------------------
@@ -315,19 +332,18 @@ Game::QueueFamilyIndices Game::find_queue_families(VkPhysicalDevice device) {
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
     
     for (uint32_t i = 0; i < queueFamilyCount; i++) {
-        VkBool32 presentSupport = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(mPhysicalDevice, i, mWindowSurface, &presentSupport);
-        
         if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
             indices.foundGraphicsFamily = true;
             indices.graphicsFamily = i;
         }
         
+        VkBool32 presentSupport = false;
+        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, mWindowSurface, &presentSupport);
+        
         if (presentSupport) {
             indices.foundPresentFamily = true;
             indices.presentFamily = i;
         }
-        
         
         if (indices.is_complete()) {
             break;
@@ -342,7 +358,27 @@ Game::QueueFamilyIndices Game::find_queue_families(VkPhysicalDevice device) {
 bool Game::is_device_suitable(VkPhysicalDevice device) {
     QueueFamilyIndices indices = find_queue_families(device);
     
-    return indices.is_complete();
+    bool extensionsSupported = check_device_extension_support(device);
+    
+    return indices.is_complete() && extensionsSupported;
+}
+
+//------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------
+bool Game::check_device_extension_support(VkPhysicalDevice device) {
+    uint32_t extensionCount;
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+    
+    std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+    
+    std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
+    
+    for (const auto& extension : availableExtensions) {
+        requiredExtensions.erase(extension.extensionName);
+    }
+    
+    return requiredExtensions.empty();
 }
 
 //------------------------------------------------------------------------------------------
@@ -363,14 +399,6 @@ void Game::create_logical_device() {
         queueCreateInfos.push_back(queueCreateInfo);
     }
     
-//    VkDeviceQueueCreateInfo queueCreateInfo{};
-//    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-//    queueCreateInfo.queueFamilyIndex = indices.graphicsFamily;
-//    queueCreateInfo.queueCount = 1;
-//
-//    float queuePriority = 1.0f;
-//    queueCreateInfo.pQueuePriorities = &queuePriority;
-    
     VkPhysicalDeviceFeatures deviceFeatures{};
     
     VkDeviceCreateInfo createInfo{};
@@ -379,6 +407,7 @@ void Game::create_logical_device() {
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
     createInfo.pEnabledFeatures = &deviceFeatures;
     createInfo.enabledExtensionCount = 0;
+    
     if (mEnableValidationLayers) {
         createInfo.enabledLayerCount = static_cast<uint32_t>(mValidationLayers.size());
         createInfo.ppEnabledLayerNames = mValidationLayers.data();

@@ -70,6 +70,7 @@ private:
     void pick_physical_device();
     QueueFamilyIndices find_queue_families(VkPhysicalDevice device);
     bool is_device_suitable(VkPhysicalDevice device);
+    bool check_device_extension_support(VkPhysicalDevice device);
     void create_logical_device();
     void main_loop();
     void clean_up();
