@@ -54,6 +54,7 @@ void Game::init_vulkan() {
     create_surface();
     pick_physical_device();
     create_logical_device();
+    create_swap_chain();
 }
 
 //------------------------------------------------------------------------------------------
@@ -326,6 +327,63 @@ VkExtent2D Game::choose_swap_extent(const VkSurfaceCapabilitiesKHR& capabilities
 }
 
 //------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------
+void Game::create_swap_chain() {
+    SwapChainSupportDetails swapChainSupport = query_swap_chain_support(mPhysicalDevice);
+    
+    VkSurfaceFormatKHR surfaceFormat = choose_swap_surface_format(swapChainSupport.formats);
+    VkPresentModeKHR presentMode = choose_swap_present_mode(swapChainSupport.presentModes);
+    VkExtent2D extent = choose_swap_extent(swapChainSupport.capabilities);
+    
+    // Use 1 more than the required minimum if possible
+    // Be sure to less than maximum
+    uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
+    if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
+        imageCount = swapChainSupport.capabilities.maxImageCount;
+    }
+    
+    VkSwapchainCreateInfoKHR createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    createInfo.surface = mWindowSurface;
+    createInfo.minImageCount = imageCount;
+    createInfo.imageFormat = surfaceFormat.format;
+    createInfo.imageColorSpace = surfaceFormat.colorSpace;
+    createInfo.imageExtent = extent;
+    createInfo.imageArrayLayers = 1;
+    // If doing post processing, use VK_IMAGE_USAGE_TRANSFER_BIT and use memory operation
+    // to transfer rendered image to a swap chain image
+    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    
+    QueueFamilyIndices indices = find_queue_families(mPhysicalDevice);
+    uint32_t queueFamilyIndices[] = {indices.graphicsFamily, indices.presentFamily};
+    
+    // Graphics family and present queue are different
+    if (indices.graphicsFamily != indices.presentFamily) {
+        // VK_SHARING_MODE_EXCLUSIVE offers best performance but requires explicit
+        // ownership transfers between the graphics and present queues
+        createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+        createInfo.queueFamilyIndexCount = 2;
+        createInfo.pQueueFamilyIndices = queueFamilyIndices;
+    }
+    // Graphics family and present queue are the same
+    else {
+        createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        createInfo.queueFamilyIndexCount = 0;
+        createInfo.pQueueFamilyIndices = nullptr;
+    }
+    
+    createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
+    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    createInfo.presentMode = presentMode;
+    createInfo.clipped = VK_TRUE;
+    createInfo.oldSwapchain = VK_NULL_HANDLE;
+    
+    if (vkCreateSwapchainKHR(mDevice, &createInfo, nullptr, &mSwapchain) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create swap chain!");
+    }
+}
+
+//------------------------------------------------------------------------------------------
 // Choose physical device for Vulkan to use
 // Rate the physical devices and choose the best/most suitable one
 //------------------------------------------------------------------------------------------
@@ -519,6 +577,8 @@ void Game::main_loop() {
 //------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------
 void Game::clean_up() {
+    vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr);
+    
     vkDestroyDevice(mDevice, nullptr);
     
     if (mEnableValidationLayers) {
