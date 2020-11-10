@@ -55,6 +55,7 @@ void Game::init_vulkan() {
     pick_physical_device();
     create_logical_device();
     create_swap_chain();
+    create_image_views();
 }
 
 //------------------------------------------------------------------------------------------
@@ -386,7 +387,7 @@ void Game::create_swap_chain() {
     mSwapchainImages.resize(imageCount);
     vkGetSwapchainImagesKHR(mDevice, mSwapchain, &imageCount, mSwapchainImages.data());
     
-    mSwapchainFormat = surfaceFormat.format;
+    mSwapchainImageFormat = surfaceFormat.format;
     mSwapchainExtent = extent;
 }
 
@@ -575,6 +576,33 @@ void Game::create_logical_device() {
 
 //------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------
+void Game::create_image_views() {
+    mSwapchainImageViews.resize(mSwapchainImages.size());
+    
+    for (size_t i = 0; i < mSwapchainImages.size(); i++) {
+        VkImageViewCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        createInfo.image = mSwapchainImages[i];
+        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        createInfo.format = mSwapchainImageFormat;
+        createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        createInfo.subresourceRange.baseMipLevel = 0;
+        createInfo.subresourceRange.levelCount = 1;
+        createInfo.subresourceRange.baseArrayLayer = 0;
+        createInfo.subresourceRange.layerCount = 1;
+        
+        if (vkCreateImageView(mDevice, &createInfo, nullptr, &mSwapchainImageViews[i]) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create image views!");
+        }
+    }
+}
+
+//------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------
 void Game::main_loop() {
     while (!glfwWindowShouldClose(mpWindow)) {
         glfwPollEvents();
@@ -584,6 +612,10 @@ void Game::main_loop() {
 //------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------
 void Game::clean_up() {
+    for (VkImageView imageView : mSwapchainImageViews) {
+        vkDestroyImageView(mDevice, imageView, nullptr);
+    }
+    
     vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr);
     
     vkDestroyDevice(mDevice, nullptr);

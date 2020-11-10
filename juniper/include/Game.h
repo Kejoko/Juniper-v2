@@ -67,8 +67,9 @@ private:
     VkQueue mPresentQueue;
     VkSwapchainKHR mSwapchain;
     std::vector<VkImage> mSwapchainImages;
-    VkFormat mSwapchainFormat;
+    VkFormat mSwapchainImageFormat;
     VkExtent2D mSwapchainExtent;
+    std::vector<VkImageView> mSwapchainImageViews;
     
     std::vector<const char*> mValidationLayers = { "VK_LAYER_KHRONOS_validation" };
     const bool mEnableValidationLayers = DEBUG_ON;
@@ -91,6 +92,7 @@ private:
     bool is_device_suitable(VkPhysicalDevice device);
     bool check_device_extension_support(VkPhysicalDevice device);
     void create_logical_device();
+    void create_image_views();
     void main_loop();
     void clean_up();
     
