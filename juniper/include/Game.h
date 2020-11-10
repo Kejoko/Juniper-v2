@@ -76,8 +76,12 @@ private:
     std::vector<const char*> get_required_glfw_extensions();
     void setup_vulkan_debug_messenger();
     void populate_vulkan_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
-    SwapChainSupportDetails query_swap_chain_support(VkPhysicalDevice device);
     void create_surface();
+    SwapChainSupportDetails query_swap_chain_support(VkPhysicalDevice device);
+    VkSurfaceFormatKHR choose_swap_surface_format(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+    VkPresentModeKHR choose_swap_present_mode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+    VkExtent2D choose_swap_extent(const VkSurfaceCapabilitiesKHR& capabilities);
+    void create_swap_chain();
     void pick_physical_device();
     QueueFamilyIndices find_queue_families(VkPhysicalDevice device);
     bool is_device_suitable(VkPhysicalDevice device);

@@ -8,7 +8,10 @@
 
 #include "Game.h"
 
+#include <cstdint>
 #include <cstring>
+
+#include <algorithm>
 #include <iostream>
 #include <map>
 #include <optional>
@@ -243,6 +246,14 @@ Game::vulkan_debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT messgaeSeveri
 
 //------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------
+void Game::create_surface() {
+    if (glfwCreateWindowSurface(mVulkanInstance, mpWindow, nullptr, &mWindowSurface) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create window surface!");
+    }
+}
+
+//------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------
 Game::SwapChainSupportDetails Game::query_swap_chain_support(VkPhysicalDevice device) {
     SwapChainSupportDetails details;
     
@@ -269,9 +280,48 @@ Game::SwapChainSupportDetails Game::query_swap_chain_support(VkPhysicalDevice de
 
 //------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------
-void Game::create_surface() {
-    if (glfwCreateWindowSurface(mVulkanInstance, mpWindow, nullptr, &mWindowSurface) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create window surface!");
+VkSurfaceFormatKHR Game::choose_swap_surface_format(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
+    // Should rank formats in case of failure
+    for (const VkSurfaceFormatKHR& availableFormat : availableFormats) {
+        if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+            return availableFormat;
+        }
+    }
+    
+    return availableFormats[0];
+}
+
+//------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------
+VkPresentModeKHR Game::choose_swap_present_mode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
+    for (const VkPresentModeKHR& availablePresentMode : availablePresentModes) {
+        if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+            return availablePresentMode;
+        }
+    }
+    
+    return VK_PRESENT_MODE_FIFO_KHR;
+}
+
+//------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------
+VkExtent2D Game::choose_swap_extent(const VkSurfaceCapabilitiesKHR& capabilities) {
+    if (capabilities.currentExtent.width != UINT32_MAX) {
+        return capabilities.currentExtent;
+    }
+    else {
+        int width, height;
+        glfwGetFramebufferSize(mpWindow, &width, &height);
+        
+        VkExtent2D actualExtent = {
+            static_cast<uint32_t>(width),
+            static_cast<uint32_t>(height)
+        };
+        
+        actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
+        actualExtent.width = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
+        
+        return actualExtent;
     }
 }
 
