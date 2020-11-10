@@ -381,6 +381,13 @@ void Game::create_swap_chain() {
     if (vkCreateSwapchainKHR(mDevice, &createInfo, nullptr, &mSwapchain) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create swap chain!");
     }
+    
+    vkGetSwapchainImagesKHR(mDevice, mSwapchain, &imageCount, nullptr);
+    mSwapchainImages.resize(imageCount);
+    vkGetSwapchainImagesKHR(mDevice, mSwapchain, &imageCount, mSwapchainImages.data());
+    
+    mSwapchainFormat = surfaceFormat.format;
+    mSwapchainExtent = extent;
 }
 
 //------------------------------------------------------------------------------------------

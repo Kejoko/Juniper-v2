@@ -66,6 +66,9 @@ private:
     VkSurfaceKHR mWindowSurface;
     VkQueue mPresentQueue;
     VkSwapchainKHR mSwapchain;
+    std::vector<VkImage> mSwapchainImages;
+    VkFormat mSwapchainFormat;
+    VkExtent2D mSwapchainExtent;
     
     std::vector<const char*> mValidationLayers = { "VK_LAYER_KHRONOS_validation" };
     const bool mEnableValidationLayers = DEBUG_ON;
