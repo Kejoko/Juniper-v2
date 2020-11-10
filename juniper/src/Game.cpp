@@ -135,9 +135,10 @@ bool Game::check_vulkan_validation_layer_support() {
             }
         }
         
-        if (!layerFound) return false;
+        if (!layerFound) {
+            return false;
+        }
     }
-    
     return true;
 }
 
@@ -238,6 +239,32 @@ Game::vulkan_debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT messgaeSeveri
     std::cerr << "Validation layer: " << (*pCallbackData).pMessage << std::endl;
     
     return VK_FALSE;
+}
+
+//------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------
+Game::SwapChainSupportDetails Game::query_swap_chain_support(VkPhysicalDevice device) {
+    SwapChainSupportDetails details;
+    
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, mWindowSurface, &details.capabilities);
+    
+    uint32_t formatCount;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, mWindowSurface, &formatCount, nullptr);
+    
+    if (formatCount != 0) {
+        details.formats.resize(formatCount);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, mWindowSurface, &formatCount, details.formats.data());
+    }
+    
+    uint32_t presentModeCount;
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, mWindowSurface, &presentModeCount, nullptr);
+    
+    if (presentModeCount != 0) {
+        details.presentModes.resize(presentModeCount);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, mWindowSurface, &presentModeCount, details.presentModes.data());
+    }
+    
+    return details;
 }
 
 //------------------------------------------------------------------------------------------
@@ -360,7 +387,13 @@ bool Game::is_device_suitable(VkPhysicalDevice device) {
     
     bool extensionsSupported = check_device_extension_support(device);
     
-    return indices.is_complete() && extensionsSupported;
+    bool swapChainAdequate = false;
+    if (extensionsSupported) {
+        SwapChainSupportDetails swapChainSupport = query_swap_chain_support(device);
+        swapChainAdequate = swapChainSupport.is_complete();
+    }
+    
+    return indices.is_complete() && extensionsSupported && swapChainAdequate;
 }
 
 //------------------------------------------------------------------------------------------

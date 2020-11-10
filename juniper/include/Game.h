@@ -29,17 +29,27 @@ public:
     int mWindowWidth = 800;
     int mWindowHeight = 600;
     
+    
     struct QueueFamilyIndices_t {
         bool foundGraphicsFamily = false;
-        uint32_t graphicsFamily;
-        
         bool foundPresentFamily = false;
+        uint32_t graphicsFamily;
         uint32_t presentFamily;
-        
         bool is_complete() {
             return foundGraphicsFamily && foundPresentFamily;
         }
     }; typedef QueueFamilyIndices_t QueueFamilyIndices;
+    
+    
+    struct SwapChainSupportDetails_t {
+        VkSurfaceCapabilitiesKHR capabilities;
+        std::vector<VkSurfaceFormatKHR> formats;
+        std::vector<VkPresentModeKHR> presentModes;
+        bool is_complete() {
+            return !formats.empty() && !presentModes.empty();
+        }
+    }; typedef SwapChainSupportDetails_t SwapChainSupportDetails;
+    
     
     Game();
     
@@ -66,6 +76,7 @@ private:
     std::vector<const char*> get_required_glfw_extensions();
     void setup_vulkan_debug_messenger();
     void populate_vulkan_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+    SwapChainSupportDetails query_swap_chain_support(VkPhysicalDevice device);
     void create_surface();
     void pick_physical_device();
     QueueFamilyIndices find_queue_families(VkPhysicalDevice device);
