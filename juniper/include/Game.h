@@ -93,6 +93,7 @@ private:
     bool check_device_extension_support(VkPhysicalDevice device);
     void create_logical_device();
     void create_image_views();
+    void create_graphics_pipeline();
     void main_loop();
     void clean_up();
     

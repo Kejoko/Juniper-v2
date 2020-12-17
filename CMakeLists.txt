@@ -59,6 +59,14 @@ target_link_libraries(
   ${J_LIBS})
 
 #======================================================================
+# Juniper Shaders
+#======================================================================
+include(cmake/add_shader.cmake)
+
+add_shader(JuniperEngine juniper/src/shaders/shader.vert)
+add_shader(JuniperEngine juniper/src/shaders/shader.frag)
+
+#======================================================================
 # Game Entry Point
 #======================================================================
 add_executable(Game app/GameMain.cpp)
